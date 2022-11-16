@@ -21,14 +21,24 @@ int open_clientfd(char* hostname, char* port) {
 
 }
 
-int main(int argc, char const* argv[]) {
+void distributeInput(char* input, int* argc, char** argv) { //distributes input into argc & argv
+    char* token;        
+    const char* delims = " \t\n";
+    token = strtok(input, delims);      // first token is the command
+    while (token != NULL) {             // getting next arguments in to argv
+        argv[(*argc)++] = token;
+        token = strtok(NULL, delims);
+    }
+}
+
+int main(int argc, char* argv[]) {
     // User query command
     char input[MAX_LINE]
     char u_argv[MAX_LINE]
     int u_argc = 0;
 
-    // Response message from server for user's request
-    char response[MAX_LINE]
+    char request[MAX_BYTES]     // User request message sent from client to server
+    char response[MAX_BYTES];   // Response message from server for user's request
 
     // Initialize a server socket address
     struct sockaddr_in serverAddr;
