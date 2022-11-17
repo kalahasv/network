@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <string.h>
 #define PORT 58130
 
 #define MAX_BYTES 256
@@ -15,6 +16,10 @@
 #define MAX_CHAR_DATE 12        // storing date strings
 #define MAX_FILENAME 80         // max string for file name
 #define MAX_NUMBER_FILE 2
+
+// Global socket file descriptors. Only closes when Ctrl + C is hit (will be handled in interruptHandler)
+int serverfd = -1;     
+int connectfd = -1;
 
 void distributeInput(char* input, int* argc, char** argv) { // distributes input into argc & argv
     char* token;        
@@ -41,10 +46,15 @@ struct stock {
 
 void readFromFile();    // read from File and put data into data structure for each stock
 
-void interruptHandler(int signalNum);       // quit server when Ctrl-C is hit
+void interruptHandler(int signalNum) {  // quit server when Ctrl-C is hit
+    printf("Ends the server\n");
+    close(serverfd);
+    close(connectfd);
+    exit(0);    // terminate the process
+}     
 
 // Create a listening descriptor that can be used to accept connection requests from clients
-// refer to the lecture codes
+// refering to the lecture codes
 int open_listenfd(char *port) {
     struct addrinfo hints, *listp, *p;
     int listenfd;
@@ -91,8 +101,6 @@ int open_listenfd(char *port) {
 int main(int argc, char* argv[]) {
     // Server command
     //char s_argv[MAX_BYTES];
-    int serverSocket = -1;
-    int clientSocket = -1;
 
     // Files must be handled before listening to client requests
     // Read in filenames and assign each stock 
@@ -111,12 +119,49 @@ int main(int argc, char* argv[]) {
     int clientLen = sizeof(clientAddress);
     // Open listening descriptor to accept connection request from clients
     int listenfd, connectfd;
-    listenfd = open_clientfd(argv[3]);      // passing in the PORT
+    serverfd = open_listenfd(argv[3]);      // passing in the PORT
+
     printf("Server started\n");
-    // 
-    connectfd = accept(listenfd, (SA *)&clientAddress,  &clientLen);
+    // Accept connection from client socket
+    connectfd = accept(serverfd, (SA *)&clientAddress,  &clientLen);
+    
+    while(1) {
+        // set back and clean up
+        fflush(stdin)
+        fflush(stdout)
+        memset(clientMessage, 0, sizeof(clientMessage));
+        memset(serverMessage, 0, sizeof(serverMessage));
 
+        // Check if server accepts the connection
+        if (connectfd < 0) {
+            printf("Failed to accept connection\n");
+        }
 
+        // Read client request message 
+        if (read(connectfd, clientMessage, sizeof(clientMessage), 0) < 0) {
+            printf("Fail to read client message\n");
+            break;
+        }
+
+        char response[MAX_BYTES];
+        response = "is received";
+        strcat(clientMessage, response);
+        strcpy(serverMessage, clientMessage);
+
+        // Send back the response to client side
+        if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
+            printf("Fail to send message to client\n");
+            break;
+        }
+
+        // If client ended the program. Do not quit the server
+        if (strlen(clientAddress) == 0) {
+            printf("Client has ended the connection\n");
+            break;
+        }
+    }
+
+    return 0;
 }
 
 
