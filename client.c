@@ -127,7 +127,8 @@ int main(int argc, char* argv[]) {
             printf("Invalid syntax\n");
             continue;       // Move to wait for next command without sending user command to server
         }*/
-        if (strcmp(argv[0], "quit") == 0) {
+        if (strcmp(u_argv[0], "quit") == 0) {
+            printf("Command to quit.\n");
             break;          // break from client program (ends while loop)
         }
         // Send client request (only those are valid) to server

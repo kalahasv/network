@@ -16,10 +16,11 @@
 #define PORT 58130
 
 #define MAX_BYTES 256
-#define MAX_NUMBER_DATE 504     // used for creating data structures to data from csv files
+#define MAX_NUMBER_STOCKS 503     // used for creating data structures to data from csv files
 #define MAX_CHAR_DATE 12        // storing date strings
 #define MAX_FILENAME 80         // max string for file name
 #define MAX_NUMBER_FILE 2
+#define MAX_LINE 80
 
 // Global socket file descriptors. Only closes when Ctrl + C is hit (will be handled in interruptHandler)
 int serverfd = -1;     
@@ -37,19 +38,109 @@ void distributeInput(char* input, int* argc, char** argv) { // distributes input
 
 // stock price information. Including date and closing price associated with date
 struct info {
-    char data[MAX_CHAR_DATE];
+    char date[MAX_CHAR_DATE];
     double closingPrice;
+
 };
 
 // data structure for two kinds of stocks. One for MRNA and another one for PFE
 struct stock {
     char stockName[MAX_FILENAME];
     //int size;   // size of stock == number of dates in csv
-    struct info stockInfo[MAX_NUMBER_DATE];
+    struct info stockInfo[MAX_NUMBER_STOCKS];
 }stockList[MAX_NUMBER_FILE];   // global stock list. Only contains two stocks: MRNA and PFE
 
-void readFromFile();    // read from File and put data into data structure for each stock
+void readFromFiles(int index){ // read from File and put data into data structure for each stock
+    //0 is always PFE and 1 is always MRNA
+    FILE* fd;
+    if(index == 0){
+        printf("Reading PFE stocks.\n");
+        fd = fopen("./PFE.csv","r");
+    }
+    else{
+        printf("Reading MRNA stocks.\n");
+        fd = fopen("./MRNA.csv","r");
+    }
+    
+    char buffer[1024];
+    int row = 0;
+    int column = 0;
+    int counter = 0;
+    char *eptr;
+    while(fgets(buffer,1024,fd)){
+        column = 0;
+        row++;
+        if(row == 1){ //skip first row
+            continue;
+        }
+        char* value = strtok(buffer,",");
+        while(value){
+            if(column == 0){
+               
+               strcpy(stockList[index].stockInfo[counter].date,value);
+            }
+            if(column == 4){
+              //printf(" Value Inputted: %s\n",value);
+              stockList[index].stockInfo[counter].closingPrice = strtod(value,&eptr);
+              //printf(" Value Inputted: %f\n",stockList[index].stockInfo[counter].closingPrice);
+            }
+            value = strtok(NULL,",");
+            column++;
 
+
+        }
+        counter++;
+        //print line if needed
+    }
+    fclose(fd);
+}
+    
+void printPFEStockList(){ //helper function
+    printf("Reading %s stocks\n",stockList[0].stockName);
+    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
+        printf("%s | %f\n",stockList[0].stockInfo[i].date,stockList[0].stockInfo[i].closingPrice);
+    }
+}
+void printMRNAStockList(){ //helper function
+    printf("Reading %s stocks\n",stockList[1].stockName);
+    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
+        
+        printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
+    }
+}
+
+char* pricesOnDate(char* date){
+   //assumes that both lists have the same dates and in the same order
+    char result[MAX_LINE] = "PFE: ";
+    char*r_result = "test";
+    char PFEnum[MAX_LINE];
+    char MRNAnum[MAX_LINE];
+    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
+        if(strcmp(stockList[0].stockInfo[i].date,date)== 0 && strcmp(stockList[1].stockInfo[i].date,date)== 0){
+            printf("number found\n");
+            sprintf(PFEnum, "%f",stockList[0].stockInfo[i].closingPrice);
+            sprintf(MRNAnum,"%f",stockList[1].stockInfo[i].closingPrice);
+            strcat(result,PFEnum);
+            strcat(result," | MRNA: ");
+            strcat(result,MRNAnum);
+            
+
+        }
+    }
+    char *res = result;
+    //printf("%s\n",result);
+    //strcpy(r_result,result);
+    return res;
+}
+char* eval(char **argv, int argc) {
+    char *result;
+    if(strcmp(argv[0],"PricesOnDate")== 0){
+       strcpy(result,pricesOnDate(argv[1]));
+    }
+    
+
+    return result;
+}
 void interruptHandler(int signalNum) {  // quit server when Ctrl-C is hit
     printf("Ends the server\n");
     close(serverfd);
@@ -103,14 +194,21 @@ int open_listenfd(char *port) {
 
 int main(int argc, char* argv[]) {
     // Server command
-    //char s_argv[MAX_BYTES];
+    char input[MAX_LINE];
+    char* u_argv[MAX_LINE];
+    int u_argc = 0;
 
     // Files must be handled before listening to client requests
-    // Read in filenames and assign each stock 
-    //strcpy(stockList[0].stockName, argv[1]);
-    //strcpy(stockList[1].stockName, argv[2]);
-    //readFromFile();
-    
+    // Read in filenames and assign each stock - first is always PFE and second is always MRNA
+    strcpy(stockList[0].stockName, argv[1]);
+    strcpy(stockList[1].stockName, argv[2]);
+    readFromFiles(0);
+    readFromFiles(1);
+    //printPFEStockList();
+    //printMRNAStockList();
+    //printf("%s\n",pricesOnDate("7/9/2019"));
+    //printf("%s\n",pricesOnDate("1/17/2020"));
+    /*
     // Ctrl + C handler function initialization
     signal(SIGINT, interruptHandler);
 
@@ -146,10 +244,18 @@ int main(int argc, char* argv[]) {
             printf("Fail to read client message\n");
             return -1;
         }
-
-        char response[MAX_BYTES] = " is received";
-        strcat(clientMessage, response);
-        strcpy(serverMessage, clientMessage);
+        
+        printf("Server print statement: The client message is: %s\n",clientMessage);
+        distributeInput(clientMessage, &u_argc, u_argv);
+        char response[MAX_BYTES];
+        strcpy(response,eval( u_argv,argc));
+        strcpy(serverMessage,response);
+        
+        //char response[MAX_BYTES] = " is received";
+        //strcat(clientMessage, response);
+        //strcpy(serverMessage, clientMessage);
+        
+        
 
         // Send back the response to client side
         if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
@@ -157,15 +263,13 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        
-
         // If client ended the program. Do not quit the server
         if (strlen(clientMessage) == 0) {
             printf("Client has ended the connection\n");
             break;
         }
     }
-
+    */
     return 0;
 }
 
