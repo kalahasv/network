@@ -6,8 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
 #include <string.h>
 #define PORT 58130
 
@@ -35,11 +39,11 @@ void distributeInput(char* input, int* argc, char** argv) { // distributes input
 struct info {
     char data[MAX_CHAR_DATE];
     double closingPrice;
-}
+};
 
 // data structure for two kinds of stocks. One for MRNA and another one for PFE
 struct stock {
-    char stockName[MAX_FILENAME]
+    char stockName[MAX_FILENAME];
     //int size;   // size of stock == number of dates in csv
     struct info stockInfo[MAX_NUMBER_DATE];
 }stockList[MAX_NUMBER_FILE];   // global stock list. Only contains two stocks: MRNA and PFE
@@ -57,14 +61,13 @@ void interruptHandler(int signalNum) {  // quit server when Ctrl-C is hit
 // refering to the lecture codes
 int open_listenfd(char *port) {
     struct addrinfo hints, *listp, *p;
-    int listenfd;
-    int optval = 1;
+    int listenfd, optval = 1;
 
     // Get a list of potential server addresses
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;                // Accept connect..
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;    // ..on any IP address
-    hints.ai_flags != AI_NUMERICSERV;               // ..using port no.
+    hints.ai_flags |= AI_NUMERICSERV;               // ..using port no. 
     getaddrinfo(NULL, port, &hints, &listp);
 
     // Walk the list for one that we can bind to
@@ -78,7 +81,7 @@ int open_listenfd(char *port) {
         setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
 
         // Bind the descriptor to the address
-        if (bind(listenfd, p->ai_addr, p->addrlen) == 0) {
+        if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) {
             break;  // Bind successfully
         }
         close(listenfd);    // Bind failed, try the next
@@ -91,7 +94,7 @@ int open_listenfd(char *port) {
     }
 
     // Make it a listening socket ready to accept connection requests
-    if (listen(listenfd, LISTENQ) < 0) {    
+    if (listen(listenfd, 8) < 0) {    
         close(listenfd);
         return -1;
     }
@@ -104,10 +107,10 @@ int main(int argc, char* argv[]) {
 
     // Files must be handled before listening to client requests
     // Read in filenames and assign each stock 
-    strcpy(stockList[0].stockName, argv[1]);
-    strcpy(stockList[1].stockName, argv[2]);
+    //strcpy(stockList[0].stockName, argv[1]);
+    //strcpy(stockList[1].stockName, argv[2]);
     //readFromFile();
-
+    
     // Ctrl + C handler function initialization
     signal(SIGINT, interruptHandler);
 
@@ -116,46 +119,48 @@ int main(int argc, char* argv[]) {
 
     // Socket address and address length initialization
     struct sockaddr_in clientAddress;
-    int clientLen = sizeof(clientAddress);
+    socklen_t  clientLen = sizeof(clientAddress);
     // Open listening descriptor to accept connection request from clients
     int listenfd, connectfd;
     serverfd = open_listenfd(argv[3]);      // passing in the PORT
 
     printf("Server started\n");
     // Accept connection from client socket
-    connectfd = accept(serverfd, (SA *)&clientAddress,  &clientLen);
+    connectfd = accept(serverfd, (struct sockaddr*)&clientAddress,  &clientLen);
     
     while(1) {
         // set back and clean up
-        fflush(stdin)
-        fflush(stdout)
+        fflush(stdin);
+        fflush(stdout);
         memset(clientMessage, 0, sizeof(clientMessage));
         memset(serverMessage, 0, sizeof(serverMessage));
 
         // Check if server accepts the connection
         if (connectfd < 0) {
             printf("Failed to accept connection\n");
+            return -1;
         }
 
         // Read client request message 
-        if (read(connectfd, clientMessage, sizeof(clientMessage), 0) < 0) {
+        if (read(connectfd, clientMessage, sizeof(clientMessage)) < 0) {
             printf("Fail to read client message\n");
-            break;
+            return -1;
         }
 
-        char response[MAX_BYTES];
-        response = "is received";
+        char response[MAX_BYTES] = " is received";
         strcat(clientMessage, response);
         strcpy(serverMessage, clientMessage);
 
         // Send back the response to client side
         if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
             printf("Fail to send message to client\n");
-            break;
+            return -1;
         }
 
+        
+
         // If client ended the program. Do not quit the server
-        if (strlen(clientAddress) == 0) {
+        if (strlen(clientMessage) == 0) {
             printf("Client has ended the connection\n");
             break;
         }

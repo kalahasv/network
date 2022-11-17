@@ -6,8 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
 #define PORT 58130  // one of the available ports from ICS Computer Support domain
 
 #define MAX_BYTES 256
@@ -24,7 +28,7 @@ int open_clientfd(char* hostname, char* port) {
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_socktype = SOCK_STREAM;    // Open a connection
     hints.ai_flags = AI_NUMERICSERV;    // ..using numeric port arg
-    hints.ai_flags != AI_ADDRCONFIG;    // Recommended for connections
+    hints.ai_flags |= AI_ADDRCONFIG;    // Recommended for connections
     hints.ai_family = AF_INET;          // Didn't see it in lecture codes but discussion notes
     hints.ai_protocol = IPPROTO_TCP;    // ^. actually not sure about this. might be 0
     getaddrinfo(hostname, port, &hints, &listp);
@@ -36,7 +40,7 @@ int open_clientfd(char* hostname, char* port) {
             continue;   // Socket creation failed, try the next
     
         // Connect to the server
-        if (coonect(clientfd, p->ai_addr, p->addrlen) != 1)
+        if (connect(clientfd, p->ai_addr, p->ai_addrlen) != 1)
             break;      // Success
         close(clientfd);    // Connect failed, try another
     }
@@ -68,7 +72,7 @@ int isInValidCommand(char **argv, int argc) {
     
     // do something..
 
-    return 1;       
+    return 0;       
 }
 
 void eval(char **argv, int argc) {
@@ -77,11 +81,11 @@ void eval(char **argv, int argc) {
 
 int main(int argc, char* argv[]) {
     // User query command
-    char input[MAX_LINE]
-    char u_argv[MAX_LINE]
+    char input[MAX_LINE];
+    char* u_argv[MAX_LINE];
     int u_argc = 0;
 
-    char request[MAX_BYTES]     // User request message sent from client to server
+    char request[MAX_BYTES];    // User request message sent from client to server
     char response[MAX_BYTES];   // Response message from server for user's request
 
     // Initialize the socket_fd. -1 if connection fails
@@ -90,10 +94,11 @@ int main(int argc, char* argv[]) {
 
     while (1) {
         // set back and clean up
-        fflush(stdin)
-        fflush(stdout)
-        memset(response, 0, sizeof(response))
-        u_argc = 0    
+        fflush(stdin);
+        fflush(stdout);
+        memset(response, 0, sizeof(response));
+        u_argc = 0;
+
 
         // Make connection to the server. Keep looping until the connection succeeds
         while(isNotConnected == 1){
@@ -118,10 +123,10 @@ int main(int argc, char* argv[]) {
         // Evaluate the input function
         // Only a few jobs needed to be done while many parameters needed to pass around. Can just do it here
         // Check for valid command, send client request to server, read response message from server, display the received message
-        if (isInValidCommand(argv, argc) == 1) {
+        /*if (isInValidCommand(argv, argc) == 1) {
             printf("Invalid syntax\n");
             continue;       // Move to wait for next command without sending user command to server
-        }
+        }*/
         if (strcmp(argv[0], "quit") == 0) {
             break;          // break from client program (ends while loop)
         }
