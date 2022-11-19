@@ -116,9 +116,7 @@ void printMRNAStockList(){ //helper function
     }
 }
 
-void makeArray(char* stockName,char*startTime, char*endTime){
-    
-}
+
 
 double maxPossibleProfit(char* stockName,char* startTime, char* endTime){
     //figure out dimensions by finding out how many days are in between start and end time
