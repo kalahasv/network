@@ -1,5 +1,7 @@
 // Thi Thuy Trang Tran, 74889299
-// Vik
+// Vikasni Kalahasthi 78601545
+//Note: Dates are entered as YYYY-MM-DD, but methods here compare against DD/MM/YYYY. 
+//Formay of input must be modified before using the methods for PriceOnDate and MaxPossibleProfit
 
 // Server side
 #include <netinet/in.h>
@@ -13,6 +15,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <string.h>
+#include <math.h>
 #define PORT 58130
 
 #define MAX_BYTES 256
@@ -49,6 +52,8 @@ struct stock {
     //int size;   // size of stock == number of dates in csv
     struct info stockInfo[MAX_NUMBER_STOCKS];
 }stockList[MAX_NUMBER_FILE];   // global stock list. Only contains two stocks: MRNA and PFE
+
+
 
 void readFromFiles(int index){ // read from File and put data into data structure for each stock
     //0 is always PFE and 1 is always MRNA
@@ -94,7 +99,9 @@ void readFromFiles(int index){ // read from File and put data into data structur
     }
     fclose(fd);
 }
-    
+
+
+
 void printPFEStockList(){ //helper function
     printf("Reading %s stocks\n",stockList[0].stockName);
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
@@ -107,6 +114,71 @@ void printMRNAStockList(){ //helper function
         
         printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
     }
+}
+
+void makeArray(char* stockName,char*startTime, char*endTime){
+    
+}
+
+double maxPossibleProfit(char* stockName,char* startTime, char* endTime){
+    //figure out dimensions by finding out how many days are in between start and end time
+    //make the profit array
+    double profit[MAX_NUMBER_STOCKS];
+    int counter = 0;
+    int flag = 0;
+    int index;
+    if(strcmp(stockName,"PFE")== 0){
+        index = 0; //PFE
+    }
+    else{
+        index = 1; //MRNA
+    }
+
+    for(int i = 0; i < MAX_NUMBER_STOCKS; i++){
+        if(strcmp(stockList[index].stockInfo[i].date,startTime) == 0){
+            printf("Start date found.\n");
+            flag = 1;
+            profit[counter] = stockList[index].stockInfo[i].closingPrice;
+            counter++;
+        }
+        if(flag == 1 && strcmp(stockList[index].stockInfo[i].date,startTime) != 0){
+            profit[counter] = stockList[index].stockInfo[i].closingPrice;
+            counter++;
+        }
+        if(strcmp(stockList[index].stockInfo[i].date,endTime) == 0){
+            flag = 0;
+        }
+    }
+    
+    for(int i = 0; i < counter; i++){
+        printf("%f,",profit[i]);
+    }
+    printf("\n");
+
+    //actually find the max profit -> naive approach described in discussion notes
+    double answer = 0;
+    int buyDay = 0;
+    int sellDay = 0;
+
+    for( int i = 0; i < counter;i++){
+        for(int j = i; j < counter; j++){
+            if(answer <= (profit[j]-profit[i])){
+                answer = profit[j]-profit[i];
+                buyDay = i;
+                sellDay = j;
+            }
+        }
+    }
+
+
+    
+    answer=round(answer*100)/100;
+    return answer; 
+    
+}
+
+double maxPossibleLoss(char* startTime, char* endTime){
+    return -1;
 }
 
 char* pricesOnDate(char* date){
@@ -204,10 +276,17 @@ int main(int argc, char* argv[]) {
     strcpy(stockList[1].stockName, argv[2]);
     readFromFiles(0);
     readFromFiles(1);
+    double max = maxPossibleProfit("PFE","9/11/2019","10/15/2019");
+    
+    printf("Max profit: %f\n",max);
+    //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
+
+
     //printPFEStockList();
     //printMRNAStockList();
     //printf("%s\n",pricesOnDate("7/9/2019"));
     //printf("%s\n",pricesOnDate("1/17/2020"));
+    
     /*
     // Ctrl + C handler function initialization
     signal(SIGINT, interruptHandler);
