@@ -118,7 +118,7 @@ void printMRNAStockList(){ //helper function
 
 
 
-double maxPossibleProfit(char* stockName,char* startTime, char* endTime){
+double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* endTime){
     //figure out dimensions by finding out how many days are in between start and end time
     //make the profit array
     double profit[MAX_NUMBER_STOCKS];
@@ -153,31 +153,40 @@ double maxPossibleProfit(char* stockName,char* startTime, char* endTime){
     }
     printf("\n");
 
-    //actually find the max profit -> naive approach described in discussion notes
+    
     double answer = 0;
     int buyDay = 0;
     int sellDay = 0;
 
-    for( int i = 0; i < counter;i++){
-        for(int j = i; j < counter; j++){
-            if(answer <= (profit[j]-profit[i])){
-                answer = profit[j]-profit[i];
-                buyDay = i;
-                sellDay = j;
-            }
+    if(strcmp(type,"profit") == 0){ //if the type is profit calc profit
+        for( int i = 0; i < counter;i++){
+                for(int j = i; j < counter; j++){
+                    if(answer <= (profit[j]-profit[i])){
+                        answer = profit[j]-profit[i];
+                        buyDay = i;
+                        sellDay = j;
+                    }
+                }
         }
     }
+    else{ //calc loss
+        for( int i = 0; i < counter;i++){
+                for(int j = i; j < counter; j++){
+                    if(answer > (profit[j]-profit[i])){
+                        answer = profit[j]-profit[i];
+                        buyDay = i;
+                        sellDay = j;
+                    }
+                }
+        }
+    }
+   
 
-
-    
-    answer=round(answer*100)/100;
+    answer= fabs(round(answer*100)/100);
     return answer; 
     
 }
 
-double maxPossibleLoss(char* startTime, char* endTime){
-    return -1;
-}
 
 char* pricesOnDate(char* date){
    //assumes that both lists have the same dates and in the same order
@@ -274,9 +283,9 @@ int main(int argc, char* argv[]) {
     strcpy(stockList[1].stockName, argv[2]);
     readFromFiles(0);
     readFromFiles(1);
-    double max = maxPossibleProfit("PFE","9/11/2019","10/15/2019");
-    
-    printf("Max profit: %f\n",max);
+    double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
+    double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
+    printf("Max profit: %f\nMax Loss: %f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
 
