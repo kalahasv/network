@@ -182,7 +182,7 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
     }
    
 
-    answer= fabs(round(answer*100)/100);
+    answer= fabs(answer);
     return answer; 
     
 }
@@ -285,7 +285,7 @@ int main(int argc, char* argv[]) {
     readFromFiles(1);
     double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
     double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
-    printf("Max profit: %f\nMax Loss: %f\n",pro,loss);
+    printf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
 
