@@ -2,6 +2,7 @@
 // Vikasni Kalahasthi 78601545
 //Note: Dates are entered as YYYY-MM-DD, but methods here compare against DD/MM/YYYY. 
 //Formay of input must be modified before using the methods for PriceOnDate and MaxPossibleProfit
+// for now: when client quits, server will also quit -> will remove that later
 
 // Server side
 #include <netinet/in.h>
@@ -103,16 +104,16 @@ void readFromFiles(int index){ // read from File and put data into data structur
 
 
 void printPFEStockList(){ //helper function
-    printf("Reading %s stocks\n",stockList[0].stockName);
+    //printf("Reading %s stocks\n",stockList[0].stockName);
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
-        printf("%s | %f\n",stockList[0].stockInfo[i].date,stockList[0].stockInfo[i].closingPrice);
+        //printf("%s | %f\n",stockList[0].stockInfo[i].date,stockList[0].stockInfo[i].closingPrice);
     }
 }
 void printMRNAStockList(){ //helper function
-    printf("Reading %s stocks\n",stockList[1].stockName);
+    //printf("Reading %s stocks\n",stockList[1].stockName);
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
         
-        printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
+        //printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
     }
 }
 
@@ -134,7 +135,7 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
 
     for(int i = 0; i < MAX_NUMBER_STOCKS; i++){
         if(strcmp(stockList[index].stockInfo[i].date,startTime) == 0){
-            printf("Start date found.\n");
+            //printf("Start date found.\n");
             flag = 1;
             profit[counter] = stockList[index].stockInfo[i].closingPrice;
             counter++;
@@ -149,9 +150,9 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
     }
     
     for(int i = 0; i < counter; i++){
-        printf("%f,",profit[i]);
+        //printf("%f,",profit[i]);
     }
-    printf("\n");
+    //printf("\n");
 
     
     double answer = 0;
@@ -196,9 +197,9 @@ char* pricesOnDate(char* date){
     char MRNAnum[MAX_LINE];
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
         if(strcmp(stockList[0].stockInfo[i].date,date)== 0 && strcmp(stockList[1].stockInfo[i].date,date)== 0){
-            printf("number found\n");
-            sprintf(PFEnum, "%f",stockList[0].stockInfo[i].closingPrice);
-            sprintf(MRNAnum,"%f",stockList[1].stockInfo[i].closingPrice);
+            //printf("number found\n");
+            //sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
+            //sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
             strcat(result,PFEnum);
             strcat(result," | MRNA: ");
             strcat(result,MRNAnum);
@@ -211,10 +212,10 @@ char* pricesOnDate(char* date){
     //strcpy(r_result,result);
     return res;
 }
-char* eval(char **argv, int argc) {
+char* eval(char **argv, int argc) {         // will return an arbitrary string when argv[0] is not PricesOnDate. need UPDATES !!
     char *result;
-    if(strcmp(argv[0],"PricesOnDate")== 0){
-       strcpy(result,pricesOnDate(argv[1]));
+    if(strcmp(argv[0], "PricesOnDate")== 0){
+       strcpy(result, pricesOnDate(argv[1]));
     }
     
 
@@ -272,10 +273,6 @@ int open_listenfd(char *port) {
 }
 
 int main(int argc, char* argv[]) {
-    // Server command
-    char input[MAX_LINE];
-    char* u_argv[MAX_LINE];
-    int u_argc = 0;
 
     // Files must be handled before listening to client requests
     // Read in filenames and assign each stock - first is always PFE and second is always MRNA
@@ -285,7 +282,7 @@ int main(int argc, char* argv[]) {
     readFromFiles(1);
     double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
     double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
-    printf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
+    //sprintf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
 
@@ -294,7 +291,7 @@ int main(int argc, char* argv[]) {
     //printf("%s\n",pricesOnDate("7/9/2019"));
     //printf("%s\n",pricesOnDate("1/17/2020"));
     
-    /*
+
     // Ctrl + C handler function initialization
     signal(SIGINT, interruptHandler);
 
@@ -313,6 +310,13 @@ int main(int argc, char* argv[]) {
     connectfd = accept(serverfd, (struct sockaddr*)&clientAddress,  &clientLen);
     
     while(1) {
+
+        // Server command
+        char input[MAX_LINE];
+        char* u_argv[MAX_LINE];
+        int u_argc = 0;
+
+
         // set back and clean up
         fflush(stdin);
         fflush(stdout);
@@ -332,9 +336,16 @@ int main(int argc, char* argv[]) {
         }
         
         printf("Server print statement: The client message is: %s\n",clientMessage);
+        // Distribute client request to correct format to arguments
         distributeInput(clientMessage, &u_argc, u_argv);
+        printf("Server debugging:\n");
+        for (int i = 0; i < u_argc; i++) {
+            printf("argv[%d]: %s ", i, u_argv[i]);
+        }
+        printf("\n");
+
         char response[MAX_BYTES];
-        strcpy(response,eval( u_argv,argc));
+        strcpy(response,eval(u_argv,argc));
         strcpy(serverMessage,response);
         
         //char response[MAX_BYTES] = " is received";
@@ -355,10 +366,9 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
-    */
+
     return 0;
 }
-
 
 
 
