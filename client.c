@@ -4,6 +4,7 @@
 // Client side
 #include <netinet/in.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -69,15 +70,80 @@ void distributeInput(char* input, int* argc, char** argv) { //distributes input 
     }
 }
 
+int isInvalidDate(char* date) {     // if valid date -> return 0 else 1
+    // Check the date format 
+    // Correct format would be: YYYY-MM-DD
+    if (strlen(date) > 10) 
+        return 1;
+    for (int i = 0; i < strlen(date); i++) {
+        if (i == 4 || i == 7) {
+            if (date[i] != '-')
+                return 1;
+        }
+        if (!isdigit(date[i]))
+                return 1;
+    }
+
+    // Check if valid date
+    int daysEachMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};     // Max days in each month
+    int yearMonthDay[3];    // array to store year, month and day respectively
+    // extract and convert into each category
+    char* token;
+    int i = 0;
+    const char* delims = "-";
+    token = strtok(date, delims);       // first token is the year
+    while (token != NULL) {             // second is month and third is day
+        yearMonthDay[i++] = atoi(token);
+        token = strtok(NULL, delims);
+    }
+    // Modify max number of days in Feb if leap year
+    if (yearMonthDay[0] % 4 == 0) 
+        daysEachMonth[1]++;     
+    // Check year
+    // --- might add something here
+    // Check month
+    if (yearMonthDay[1] <= 0 || yearMonthDay[1] >= 13)
+        return 1;
+    // Check day
+    if (yearMonthDay[2] <= 0 || yearMonthDay[2] > daysEachMonth[yearMonthDay[1] - 1])
+        return 1;
+    
+    return 0;
+}
+
 // Whatever invalid format of a date (YYYY-MM-DD)
 // Stock names as ticker symbols (PFE or MRNA)
 // Also need to check for case-sensitive 
 // If invalid return 1 else 0 
 int isInValidCommand(char **argv, int argc) {
-    
-    // do something..
+    // not valid when empty command
+    if (argc == 0) {
+        return 1;
+    }
+    if (strcmp(argv[0], "PricesOnDate") == 0) {
+        if (argc != 2) 
+            return 1;
+        else {
+            if (isInvalidDate(argv[1]) == 1) 
+                return 1;
+        }
+    }
+    else if (strcmp(argv[0], "MaxPossible") == 0) {
+        if (argc != 5)
+            return 1;
+        else {
+            if (strcmp(argv[1], "profit") == 0 || strcmp(argv[1], "loss") == 0 || strcmp(argv[2], "PFE") == 0 || strcmp(argv[2], "MRNA") == 0) {
+                if (isInvalidDate(argv[3]) == 1 || isInvalidDate(argv[4]) == 1) 
+                    return 1;
+            }  
+            else
+                return 1;
+        }
+    }
+    else 
+        return 1;
 
-    return 0;       
+    return 0;     
 }
 
 void eval(char **argv, int argc) {
@@ -128,14 +194,15 @@ int main(int argc, char* argv[]) {
         // Evaluate the input function
         // Only a few jobs needed to be done while many parameters needed to pass around. Can just do it here
         // Check for valid command, send client request to server, read response message from server, display the received message
-        /*if (isInValidCommand(argv, argc) == 1) {
-            printf("Invalid syntax\n");
-            continue;       // Move to wait for next command without sending user command to server
-        }*/
+    
         if (strcmp(u_argv[0], "quit") == 0) {
             printf("Command to quit.\n");
             break;          // break from client program (ends while loop)
         }
+        /*if (isInValidCommand(argv, argc) == 1) {
+            printf("Invalid syntax\n");
+            continue;       // Move to wait for next command without sending user command to server
+        }*/
         // Send client request (only those are valid) to server
         if (send(socket, input, strlen(input), 0) < 0) {
             printf("Fail to send message to server\n");
