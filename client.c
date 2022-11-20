@@ -55,9 +55,14 @@ int open_clientfd(char* hostname, char* port) {
 }
 
 void distributeInput(char* input, int* argc, char** argv) { //distributes input into argc & argv
+    // we would need to keep input for future usage hence we would define a temp here
+    // should not modify the orginial input for any cases
+    char tempInput[MAX_LINE];
+    memcpy(tempInput, input, strlen(input));
+
     char* token;        
     const char* delims = " \t\n";
-    token = strtok(input, delims);      // first token is the command
+    token = strtok(tempInput, delims);  // first token is the command
     while (token != NULL) {             // getting next arguments in to argv
         argv[(*argc)++] = token;
         token = strtok(NULL, delims);
