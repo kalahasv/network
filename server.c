@@ -1,8 +1,5 @@
 // Thi Thuy Trang Tran, 74889299
 // Vikasni Kalahasthi 78601545
-//Note: Dates are entered as YYYY-MM-DD, but methods here compare against DD/MM/YYYY. 
-//Formay of input must be modified before using the methods for PriceOnDate and MaxPossibleProfit
-// for now: when client quits, server will also quit -> will remove that later
 
 // Server side
 #include <netinet/in.h>
@@ -31,13 +28,6 @@ int serverfd = -1;
 int connectfd = -1;
 
 void distributeInput(char* input, int* argc, char** argv) { // distributes input into argc & argv
-    /*char* token;        
-    const char* delims = " \t\n";
-    token = strtok(input, delims);      // first token is the command
-    while (token != NULL) {             // getting next arguments in to argv
-        argv[(*argc)++] = token;
-        token = strtok(NULL, delims);
-    }*/
     char* token = strtok(input, " \t\n");
     *argc = 0;
 
@@ -62,17 +52,13 @@ struct stock {
     struct info stockInfo[MAX_NUMBER_STOCKS];
 }stockList[MAX_NUMBER_FILE];   // global stock list. Only contains two stocks: MRNA and PFE
 
-
-
 void readFromFiles(int index){ // read from File and put data into data structure for each stock
     //0 is always PFE and 1 is always MRNA
     FILE* fd;
     if(index == 0){
-        printf("Reading PFE stocks.\n");
         fd = fopen("./PFE.csv","r");
     }
     else{
-        printf("Reading MRNA stocks.\n");
         fd = fopen("./MRNA.csv","r");
     }
     
@@ -84,7 +70,7 @@ void readFromFiles(int index){ // read from File and put data into data structur
     while(fgets(buffer,1024,fd)){
         column = 0;
         row++;
-        if(row == 1){ //skip first row
+        if(row == 1){ // skip first row
             continue;
         }
         char* value = strtok(buffer,",");
@@ -109,56 +95,22 @@ void readFromFiles(int index){ // read from File and put data into data structur
     fclose(fd);
 }
 
-void smarterReadFromFiles(int index) {
-    //0 is always PFE and 1 is always MRNA
-    FILE* fd;
-    int size = 0;
-
-    if(index == 0){
-        printf("Reading PFE stocks.\n");
-        // can just assign name here too
-        fd = fopen("./PFE.csv", "rb");
-    }
-    else{
-        printf("Reading MRNA stocks.\n");
-        // assign name here
-        fd = fopen("./MRNA.csv", "rb");
-    }
-
-    //Ignore the first line
-    fscanf(fd, "%*[^\n]\n");
-    // Only read first and fifth column into right formatted date and price
-    while(fscanf(fd, "%10s,%*[^,],%*[^,],%*[^,],%lf,%*[^\n]\n", stockList[index].stockInfo[size].date, &stockList[index].stockInfo[size].closingPrice) != EOF) {
-        // Initialize
-        stockList[index].stockInfo[size++].date[MAX_CHAR_DATE] = 0;
-        stockList[index].size = size;
-    }
-
-    fclose(fd);
-
-}
-
-
-
-void printPFEStockList(){ //helper function
+void printPFEStockList(){ // helper function
     printf("Reading %s stocks\n",stockList[0].stockName);
     for(int i = 0; i < stockList[0].size; i++){
         printf("%s | %f\n",stockList[0].stockInfo[i].date, stockList[0].stockInfo[i].closingPrice);
     }
 }
-void printMRNAStockList(){ //helper function
-    //printf("Reading %s stocks\n",stockList[1].stockName);
+void printMRNAStockList(){ // helper function
+    printf("Reading %s stocks\n",stockList[1].stockName);
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
-        
-        //printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
+        printf("%s | %f\n",stockList[1].stockInfo[i].date,stockList[1].stockInfo[i].closingPrice);
     }
 }
 
-
-
 void maxPossibleProfit_Loss(char* type, char* stockName,char* startTime, char* endTime, char* message){
-    //figure out dimensions by finding out how many days are in between start and end time
-    //make the profit array
+    // figure out dimensions by finding out how many days are in between start and end time
+    // make the profit array
     double profit[MAX_NUMBER_STOCKS];
     int counter = 0;
     int flag = 0;
@@ -185,15 +137,12 @@ void maxPossibleProfit_Loss(char* type, char* stockName,char* startTime, char* e
             flag = 0;
         }
     }
-    /*for(int i = 0; i < counter; i++){
-        printf("%f,",profit[i]);
-    }
-    printf("\n");*/
+
     double answer = 0;
     int buyDay = 0;
     int sellDay = 0;
 
-    if(strcmp(type,"profit") == 0){ //if the type is profit calc profit
+    if(strcmp(type,"profit") == 0){ // if the type is profit calc profit
         for( int i = 0; i < counter;i++){
                 for(int j = i; j < counter; j++){
                     if(answer <= (profit[j]-profit[i])){
@@ -204,7 +153,7 @@ void maxPossibleProfit_Loss(char* type, char* stockName,char* startTime, char* e
                 }
         }
     }
-    else{ //calc loss
+    else{ // calc loss
         for( int i = 0; i < counter;i++){
                 for(int j = i; j < counter; j++){
                     if(answer > (profit[j]-profit[i])){
@@ -217,19 +166,16 @@ void maxPossibleProfit_Loss(char* type, char* stockName,char* startTime, char* e
     }
     answer = fabs(answer);
     sprintf(message, "%.2f", answer);
-    //return answer; 
 }
 
 int pricesOnDate(char* date, char* message) {   // get prices from given date. If date is not found -> return 0 else 1
-    //assumes that both lists have the same dates and in the same order
+    // assumes that both lists have the same dates and in the same order
     int datefound = 0;
     char result[MAX_LINE] = "PFE: ";
-    //char*r_result = "test";
     char PFEnum[MAX_LINE];
     char MRNAnum[MAX_LINE];
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
         if(strcmp(stockList[0].stockInfo[i].date,date) == 0 && strcmp(stockList[1].stockInfo[i].date,date) == 0){
-            printf("number found\n");
             sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
             sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
             strcat(result, PFEnum);
@@ -241,18 +187,6 @@ int pricesOnDate(char* date, char* message) {   // get prices from given date. I
     strcpy(message, result);
     return datefound;
 }
-
-/*char* eval(char **argv, int argc) {         // will return an arbitrary string when argv[0] is not PricesOnDate. need UPDATES !!
-    char *result;
-    printf("In eval: \n");
-    printf("argv[1] : %s", argv[1]);
-    if(strcmp(argv[0], "PricesOnDate") == 0){
-       strcpy(result, pricesOnDate(argv[1]));
-    }
-    
-
-    return result;
-}*/
 
 void interruptHandler(int signalNum) {  // quit server when Ctrl-C is hit
     printf("Ends the server\n");
@@ -326,22 +260,7 @@ int main(int argc, char* argv[]) {
     strcpy(stockList[1].stockName, argv[2]);
     readFromFiles(0);
     readFromFiles(1);
-    //smarterReadFromFiles(0);
-    //smarterReadFromFiles(1);
     
-    //double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
-    //printf("%.2f", pro);
-    //double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
-    //sprintf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
-    //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
-
-
-    //printPFEStockList();
-    //printMRNAStockList();
-    //printf("%s\n",pricesOnDate("7/9/2019"));
-    //printf("%s\n",pricesOnDate("1/17/2020"));
-    
-
     // Ctrl + C handler function initialization
     signal(SIGINT, interruptHandler);
 
@@ -360,12 +279,10 @@ int main(int argc, char* argv[]) {
     connectfd = accept(serverfd, (struct sockaddr*)&clientAddress,  &clientLen);
     
     while(1) {
-
         // Server command
         char input[MAX_LINE];
         char* u_argv[MAX_LINE];
         int u_argc = 0;
-
 
         // set back and clean up
         fflush(stdin);
@@ -378,20 +295,21 @@ int main(int argc, char* argv[]) {
             printf("Failed to accept connection\n");
             return -1;
         }
-
         // Read client request message 
         if (read(connectfd, clientMessage, sizeof(clientMessage)) < 0) {
             printf("Fail to read client message\n");
             return -1;
         }
+
+        // Continue server even though client ends connection. only terminates with Ctrl + C
+        // If client ended the program. Do not quit the server
+        if (strlen(clientMessage) == 0) {
+            continue;
+        }
         
         printf("%s\n", clientMessage);
         // Distribute client request to correct format to arguments
         distributeInput(clientMessage, &u_argc, u_argv);
-        for (int i = 0; i < u_argc; i++) {
-            printf("u_argv[%d] = %s ", i, u_argv[i]);
-        }
-        printf("\n");
 
         if (strcmp(u_argv[0], "PricesOnDate") == 0) {
             char priceMessage[MAX_BYTES];
@@ -421,12 +339,6 @@ int main(int argc, char* argv[]) {
         if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
             printf("Fail to send message to client\n");
             return -1;
-        }
-
-        // If client ended the program. Do not quit the server
-        if (strlen(clientMessage) == 0) {
-            printf("Client has ended the connection\n");
-            break;
         }
     }
 
