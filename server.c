@@ -31,13 +31,21 @@ int serverfd = -1;
 int connectfd = -1;
 
 void distributeInput(char* input, int* argc, char** argv) { // distributes input into argc & argv
-    char* token;        
+    /*char* token;        
     const char* delims = " \t\n";
     token = strtok(input, delims);      // first token is the command
     while (token != NULL) {             // getting next arguments in to argv
         argv[(*argc)++] = token;
         token = strtok(NULL, delims);
+    }*/
+    char* token = strtok(input, " \t\n");
+    *argc = 0;
+
+    while (token != NULL) {
+        argv[(*argc)++] = token;
+        token = strtok(NULL, " \t\n");
     }
+    argv[(*argc)] = token;
 }
 
 // stock price information. Including date and closing price associated with date
@@ -50,7 +58,7 @@ struct info {
 // data structure for two kinds of stocks. One for MRNA and another one for PFE
 struct stock {
     char stockName[MAX_FILENAME];
-    //int size;   // size of stock == number of dates in csv
+    int size;   // size of stock == number of dates in csv
     struct info stockInfo[MAX_NUMBER_STOCKS];
 }stockList[MAX_NUMBER_FILE];   // global stock list. Only contains two stocks: MRNA and PFE
 
@@ -101,12 +109,41 @@ void readFromFiles(int index){ // read from File and put data into data structur
     fclose(fd);
 }
 
+void smarterReadFromFiles(int index) {
+    //0 is always PFE and 1 is always MRNA
+    FILE* fd;
+    int size = 0;
+
+    if(index == 0){
+        printf("Reading PFE stocks.\n");
+        // can just assign name here too
+        fd = fopen("./PFE.csv", "rb");
+    }
+    else{
+        printf("Reading MRNA stocks.\n");
+        // assign name here
+        fd = fopen("./MRNA.csv", "rb");
+    }
+
+    //Ignore the first line
+    fscanf(fd, "%*[^\n]\n");
+    // Only read first and fifth column into right formatted date and price
+    while(fscanf(fd, "%10s,%*[^,],%*[^,],%*[^,],%lf,%*[^\n]\n", stockList[index].stockInfo[size].date, &stockList[index].stockInfo[size].closingPrice) != EOF) {
+        // Initialize
+        stockList[index].stockInfo[size++].date[MAX_CHAR_DATE] = 0;
+        stockList[index].size = size;
+    }
+
+    fclose(fd);
+
+}
+
 
 
 void printPFEStockList(){ //helper function
-    //printf("Reading %s stocks\n",stockList[0].stockName);
-    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
-        //printf("%s | %f\n",stockList[0].stockInfo[i].date,stockList[0].stockInfo[i].closingPrice);
+    printf("Reading %s stocks\n",stockList[0].stockName);
+    for(int i = 0; i < stockList[0].size; i++){
+        printf("%s | %f\n",stockList[0].stockInfo[i].date, stockList[0].stockInfo[i].closingPrice);
     }
 }
 void printMRNAStockList(){ //helper function
@@ -189,38 +226,59 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
 }
 
 
-char* pricesOnDate(char* date){
+/*char* pricesOnDate(char* date){
    //assumes that both lists have the same dates and in the same order
     char result[MAX_LINE] = "PFE: ";
     char*r_result = "test";
     char PFEnum[MAX_LINE];
     char MRNAnum[MAX_LINE];
     for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
-        if(strcmp(stockList[0].stockInfo[i].date,date)== 0 && strcmp(stockList[1].stockInfo[i].date,date)== 0){
-            //printf("number found\n");
-            //sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
-            //sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
-            strcat(result,PFEnum);
+        if(strcmp(stockList[0].stockInfo[i].date,date) == 0 && strcmp(stockList[1].stockInfo[i].date,date) == 0){
+            printf("number found\n");
+            sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
+            sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
+            strcat(result, PFEnum);
             strcat(result," | MRNA: ");
-            strcat(result,MRNAnum);
-            
-
+            strcat(result, MRNAnum); 
         }
     }
     char *res = result;
     //printf("%s\n",result);
     //strcpy(r_result,result);
     return res;
+}*/
+
+void pricesOnDate(char* date, char* message) {
+    //assumes that both lists have the same dates and in the same order
+    char result[MAX_LINE] = "PFE: ";
+    //char*r_result = "test";
+    char PFEnum[MAX_LINE];
+    char MRNAnum[MAX_LINE];
+    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
+        if(strcmp(stockList[0].stockInfo[i].date,date) == 0 && strcmp(stockList[1].stockInfo[i].date,date) == 0){
+            printf("number found\n");
+            sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
+            sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
+            strcat(result, PFEnum);
+            strcat(result," | MRNA: ");
+            strcat(result, MRNAnum); 
+        }
+    }
+    strcpy(message, result);
 }
-char* eval(char **argv, int argc) {         // will return an arbitrary string when argv[0] is not PricesOnDate. need UPDATES !!
+
+/*char* eval(char **argv, int argc) {         // will return an arbitrary string when argv[0] is not PricesOnDate. need UPDATES !!
     char *result;
-    if(strcmp(argv[0], "PricesOnDate")== 0){
+    printf("In eval: \n");
+    printf("argv[1] : %s", argv[1]);
+    if(strcmp(argv[0], "PricesOnDate") == 0){
        strcpy(result, pricesOnDate(argv[1]));
     }
     
 
     return result;
-}
+}*/
+
 void interruptHandler(int signalNum) {  // quit server when Ctrl-C is hit
     printf("Ends the server\n");
     close(serverfd);
@@ -272,6 +330,21 @@ int open_listenfd(char *port) {
     return listenfd;
 }
 
+void reformatDate(char* date) {
+    //char retDate[MAX_LINE];
+    int yearMonthDay[3];    // array to store year, month and day respectively
+    // extract and convert into each category
+    char* token;
+    int i = 0;
+    const char* delims = "-";
+    token = strtok(date, delims);       // first token is the year
+    while (token != NULL) {             // second is month and third is day
+        yearMonthDay[i++] = atoi(token);
+        token = strtok(NULL, delims);
+    }
+    sprintf(date, "%d/%d/%d", yearMonthDay[1], yearMonthDay[2], yearMonthDay[0]);
+}
+
 int main(int argc, char* argv[]) {
 
     // Files must be handled before listening to client requests
@@ -280,8 +353,11 @@ int main(int argc, char* argv[]) {
     strcpy(stockList[1].stockName, argv[2]);
     readFromFiles(0);
     readFromFiles(1);
-    //double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
-    //double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
+    //smarterReadFromFiles(0);
+    //smarterReadFromFiles(1);
+    
+    double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
+    double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
     //sprintf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
@@ -335,25 +411,26 @@ int main(int argc, char* argv[]) {
             return -1;
         }
         
-        printf("%s\n",clientMessage);
+        printf("%s\n", clientMessage);
         // Distribute client request to correct format to arguments
-        /*
         distributeInput(clientMessage, &u_argc, u_argv);
-        printf("Server debugging:\n");
         for (int i = 0; i < u_argc; i++) {
-            printf("argv[%d]: %s ", i, u_argv[i]);
+            printf("u_argv[%d] = %s ", i, u_argv[i]);
         }
         printf("\n");
-       */
-       //char response[MAX_BYTES];
-        //strcpy(response,eval(u_argv,u_argc));
-       // strcpy(serverMessage,response);
-        
-        char response[MAX_BYTES] = " is received";
-        strcat(clientMessage, response);
-        strcpy(serverMessage, clientMessage);
-        
-        
+
+        if (strcmp(u_argv[0], "PricesOnDate") == 0) {
+            char priceMessage[MAX_BYTES];
+            printf("date: %s", u_argv[1]);
+            reformatDate(u_argv[1]);
+            printf("reformatted date: %s: ", u_argv[1]);
+            pricesOnDate(u_argv[1], priceMessage);
+            strcpy(serverMessage, priceMessage);
+        }
+
+        //char response[MAX_BYTES];
+        //strcpy(response, eval(u_argv, u_argc));
+        //strcpy(serverMessage, response);
 
         // Send back the response to client side
         if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
