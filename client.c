@@ -1,5 +1,5 @@
 // Thi Thuy Trang Tran, 74889299
-// Vik
+// Vikasni Kalahasthi 78601545
 
 // Client side
 #include <netinet/in.h>
@@ -59,7 +59,7 @@ void distributeInput(char* input, int* argc, char** argv) { //distributes input 
     // we would need to keep input for future usage hence we would define a temp here
     // should not modify the orginial input for any cases
     char tempInput[MAX_LINE];
-    memcpy(tempInput, input, strlen(input));
+    strcpy(tempInput, input);
 
     char* token;        
     const char* delims = " \t\n";
@@ -70,32 +70,40 @@ void distributeInput(char* input, int* argc, char** argv) { //distributes input 
     }
 }
 
-int isInvalidDate(char* date) {     // if valid date -> return 0 else 1
+int isInvalidFormatDate(char* date) {     // if valid date -> return 0 else 1
     // Check the date format 
     // Correct format would be: YYYY-MM-DD
-    if (strlen(date) > 10) 
+    if (strlen(date) != 10) 
         return 1;
     for (int i = 0; i < strlen(date); i++) {
         if (i == 4 || i == 7) {
             if (date[i] != '-')
                 return 1;
         }
-        if (!isdigit(date[i]))
+        else {
+            if (!isdigit(date[i]))
                 return 1;
+        }
     }
+    return 0;
+}
 
+// Assuming dates are correct
+int isInvalidDate(char* date) {
+    printf("Check if valid date: %s\n", date);
     // Check if valid date
     int daysEachMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};     // Max days in each month
     int yearMonthDay[3];    // array to store year, month and day respectively
     // extract and convert into each category
-    char* token;
     int i = 0;
-    const char* delims = "-";
-    token = strtok(date, delims);       // first token is the year
+    //const char* delims = "-";
+    char* token = strtok(date, "-");       // first token is the year
     while (token != NULL) {             // second is month and third is day
+        printf("token: %s", token);
         yearMonthDay[i++] = atoi(token);
-        token = strtok(NULL, delims);
+        token = strtok(NULL, "-");
     }
+    printf("year: %d month: %d day: %d", yearMonthDay[0], yearMonthDay[1], yearMonthDay[2]);
     // Modify max number of days in Feb if leap year
     if (yearMonthDay[0] % 4 == 0) 
         daysEachMonth[1]++;     
@@ -108,46 +116,7 @@ int isInvalidDate(char* date) {     // if valid date -> return 0 else 1
     if (yearMonthDay[2] <= 0 || yearMonthDay[2] > daysEachMonth[yearMonthDay[1] - 1])
         return 1;
     
-    return 0;
-}
-
-// Whatever invalid format of a date (YYYY-MM-DD)
-// Stock names as ticker symbols (PFE or MRNA)
-// Also need to check for case-sensitive 
-// If invalid return 1 else 0 
-int isInValidCommand(char **argv, int argc) {
-    // not valid when empty command
-    if (argc == 0) {
-        return 1;
-    }
-    if (strcmp(argv[0], "PricesOnDate") == 0) {
-        if (argc != 2) 
-            return 1;
-        else {
-            if (isInvalidDate(argv[1]) == 1) 
-                return 1;
-        }
-    }
-    else if (strcmp(argv[0], "MaxPossible") == 0) {
-        if (argc != 5)
-            return 1;
-        else {
-            if (strcmp(argv[1], "profit") == 0 || strcmp(argv[1], "loss") == 0 || strcmp(argv[2], "PFE") == 0 || strcmp(argv[2], "MRNA") == 0) {
-                if (isInvalidDate(argv[3]) == 1 || isInvalidDate(argv[4]) == 1) 
-                    return 1;
-            }  
-            else
-                return 1;
-        }
-    }
-    else 
-        return 1;
-
-    return 0;     
-}
-
-void eval(char **argv, int argc) {
-    // empty..
+    return 0;   
 }
 
 int main(int argc, char* argv[]) {
@@ -162,7 +131,7 @@ int main(int argc, char* argv[]) {
     // Initialize the socket_fd. -1 if connection fails
     int socket = 0;             
     int isNotConnected = 1;
-
+    
     while (1) {
         // set back and clean up
         fflush(stdin);
@@ -194,15 +163,53 @@ int main(int argc, char* argv[]) {
         // Evaluate the input function
         // Only a few jobs needed to be done while many parameters needed to pass around. Can just do it here
         // Check for valid command, send client request to server, read response message from server, display the received message
-    
         if (strcmp(u_argv[0], "quit") == 0) {
             printf("Command to quit.\n");
             break;          // break from client program (ends while loop)
         }
-        /*if (isInValidCommand(argv, argc) == 1) {
-            printf("Invalid syntax\n");
+
+        // validate the client command
+        // Whatever invalid format of a date (YYYY-MM-DD)
+        // Stock names as ticker symbols (PFE or MRNA)
+        // Also need to check for case-sensitive
+        if (u_argc == 0) {
             continue;       // Move to wait for next command without sending user command to server
-        }*/
+        }
+        else if (strcmp(u_argv[0], "PricesOnDate") == 0 || strcmp(u_argv[0], "MaxPossible") == 0 ) {
+            if (strcmp(u_argv[0], "PricesOnDate") == 0) {
+                if (u_argc != 2) {
+                    printf("Invalid syntax\n");
+                    continue;
+                }
+                else {
+                    if (isInvalidFormatDate(u_argv[1]) == 1) {
+                        printf("Invalid syntax\n");
+                        continue;
+                    }
+                }
+            }
+            else if (strcmp(u_argv[0], "MaxPossible") == 0) {
+                if ((strcmp(u_argv[1], "profit") == 0 || strcmp(u_argv[1], "loss") == 0)
+                     && (strcmp(u_argv[2], "PFE") == 0 || strcmp(u_argv[2], "MRNA") == 0)) {
+                    if (isInvalidFormatDate(u_argv[3]) == 1) {
+                        if (isInvalidFormatDate(u_argv[4]) == 1) {
+                            printf("Invalid syntax\n");
+                            continue;
+                        }
+                    }     
+                }
+                else {
+                    printf("Invalid syntax\n");
+                    continue;
+                }
+            }
+        }
+        else {
+            printf("Invalid syntax\n");
+            continue;
+        }
+        // -- end checking user command
+        
         // Send client request (only those are valid) to server
         if (send(socket, input, strlen(input), 0) < 0) {
             printf("Fail to send message to server\n");
@@ -217,7 +224,7 @@ int main(int argc, char* argv[]) {
         printf("%s\n", response);
 
     }
-
+    
     // Close the connected socket
     close(socket);
     return 0;
