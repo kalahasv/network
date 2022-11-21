@@ -280,8 +280,8 @@ int main(int argc, char* argv[]) {
     strcpy(stockList[1].stockName, argv[2]);
     readFromFiles(0);
     readFromFiles(1);
-    double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
-    double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
+    //double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
+    //double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
     //sprintf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
@@ -335,22 +335,23 @@ int main(int argc, char* argv[]) {
             return -1;
         }
         
-        printf("Server print statement: The client message is: %s\n",clientMessage);
+        printf("%s\n",clientMessage);
         // Distribute client request to correct format to arguments
+        /*
         distributeInput(clientMessage, &u_argc, u_argv);
         printf("Server debugging:\n");
         for (int i = 0; i < u_argc; i++) {
             printf("argv[%d]: %s ", i, u_argv[i]);
         }
         printf("\n");
-
-        char response[MAX_BYTES];
-        strcpy(response,eval(u_argv,argc));
-        strcpy(serverMessage,response);
+       */
+       //char response[MAX_BYTES];
+        //strcpy(response,eval(u_argv,u_argc));
+       // strcpy(serverMessage,response);
         
-        //char response[MAX_BYTES] = " is received";
-        //strcat(clientMessage, response);
-        //strcpy(serverMessage, clientMessage);
+        char response[MAX_BYTES] = " is received";
+        strcat(clientMessage, response);
+        strcpy(serverMessage, clientMessage);
         
         
 
