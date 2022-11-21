@@ -156,7 +156,7 @@ void printMRNAStockList(){ //helper function
 
 
 
-double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* endTime){
+void maxPossibleProfit_Loss(char* type, char* stockName,char* startTime, char* endTime, char* message){
     //figure out dimensions by finding out how many days are in between start and end time
     //make the profit array
     double profit[MAX_NUMBER_STOCKS];
@@ -185,13 +185,10 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
             flag = 0;
         }
     }
-    
-    for(int i = 0; i < counter; i++){
-        //printf("%f,",profit[i]);
+    /*for(int i = 0; i < counter; i++){
+        printf("%f,",profit[i]);
     }
-    //printf("\n");
-
-    
+    printf("\n");*/
     double answer = 0;
     int buyDay = 0;
     int sellDay = 0;
@@ -218,38 +215,14 @@ double maxPossibleProfit_Loss(char* type,char* stockName,char* startTime, char* 
                 }
         }
     }
-   
-
-    answer= fabs(answer);
-    return answer; 
-    
+    answer = fabs(answer);
+    sprintf(message, "%.2f", answer);
+    //return answer; 
 }
 
-
-/*char* pricesOnDate(char* date){
-   //assumes that both lists have the same dates and in the same order
-    char result[MAX_LINE] = "PFE: ";
-    char*r_result = "test";
-    char PFEnum[MAX_LINE];
-    char MRNAnum[MAX_LINE];
-    for(int i = 0; i < MAX_NUMBER_STOCKS;i++){
-        if(strcmp(stockList[0].stockInfo[i].date,date) == 0 && strcmp(stockList[1].stockInfo[i].date,date) == 0){
-            printf("number found\n");
-            sprintf(PFEnum, "%.2f",stockList[0].stockInfo[i].closingPrice);
-            sprintf(MRNAnum,"%.2f",stockList[1].stockInfo[i].closingPrice);
-            strcat(result, PFEnum);
-            strcat(result," | MRNA: ");
-            strcat(result, MRNAnum); 
-        }
-    }
-    char *res = result;
-    //printf("%s\n",result);
-    //strcpy(r_result,result);
-    return res;
-}*/
-
-void pricesOnDate(char* date, char* message) {
+int pricesOnDate(char* date, char* message) {   // get prices from given date. If date is not found -> return 0 else 1
     //assumes that both lists have the same dates and in the same order
+    int datefound = 0;
     char result[MAX_LINE] = "PFE: ";
     //char*r_result = "test";
     char PFEnum[MAX_LINE];
@@ -262,9 +235,11 @@ void pricesOnDate(char* date, char* message) {
             strcat(result, PFEnum);
             strcat(result," | MRNA: ");
             strcat(result, MRNAnum); 
+            datefound = 1;
         }
     }
     strcpy(message, result);
+    return datefound;
 }
 
 /*char* eval(char **argv, int argc) {         // will return an arbitrary string when argv[0] is not PricesOnDate. need UPDATES !!
@@ -330,8 +305,7 @@ int open_listenfd(char *port) {
     return listenfd;
 }
 
-void reformatDate(char* date) {
-    //char retDate[MAX_LINE];
+void reformatDate(char* date) { // reformat the date to same format in data sheet. MM/DD/YYYY instead of YYYY-MM-DD
     int yearMonthDay[3];    // array to store year, month and day respectively
     // extract and convert into each category
     char* token;
@@ -346,7 +320,6 @@ void reformatDate(char* date) {
 }
 
 int main(int argc, char* argv[]) {
-
     // Files must be handled before listening to client requests
     // Read in filenames and assign each stock - first is always PFE and second is always MRNA
     strcpy(stockList[0].stockName, argv[1]);
@@ -356,8 +329,9 @@ int main(int argc, char* argv[]) {
     //smarterReadFromFiles(0);
     //smarterReadFromFiles(1);
     
-    double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
-    double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
+    //double pro = maxPossibleProfit_Loss("profit","PFE","9/11/2019","10/15/2019");
+    //printf("%.2f", pro);
+    //double loss = maxPossibleProfit_Loss("loss","MRNA","4/16/2020","8/23/2020");
     //sprintf("Max profit: %.2f\nMax Loss: %.2f\n",pro,loss);
     //need to make an array with the stocks from the start date to the end date, then send it to the max profit or loss
 
@@ -421,16 +395,27 @@ int main(int argc, char* argv[]) {
 
         if (strcmp(u_argv[0], "PricesOnDate") == 0) {
             char priceMessage[MAX_BYTES];
-            printf("date: %s", u_argv[1]);
             reformatDate(u_argv[1]);
-            printf("reformatted date: %s: ", u_argv[1]);
-            pricesOnDate(u_argv[1], priceMessage);
-            strcpy(serverMessage, priceMessage);
+            if (pricesOnDate(u_argv[1], priceMessage) == 1)
+                strcpy(serverMessage, priceMessage);
+            else
+                strcpy(serverMessage, "Unknown");
         }
 
-        //char response[MAX_BYTES];
-        //strcpy(response, eval(u_argv, u_argc));
-        //strcpy(serverMessage, response);
+        if (strcmp(u_argv[0], "MaxPossible") == 0) {
+            char priceMessage[MAX_BYTES];
+            reformatDate(u_argv[3]);
+            reformatDate(u_argv[4]);
+            if (strcmp(u_argv[1], "profit") == 0) {
+                // calculate and return profit from given date range
+                // params: profit, data name, starting date, ending date
+                maxPossibleProfit_Loss(u_argv[1], u_argv[2], u_argv[3], u_argv[4], priceMessage);  
+            }
+            else {  // calculate and return loss from given date range
+                maxPossibleProfit_Loss(u_argv[1], u_argv[2], u_argv[3], u_argv[4], priceMessage);
+            }
+            strcpy(serverMessage, priceMessage);
+        }
 
         // Send back the response to client side
         if (send(connectfd, serverMessage, strlen(serverMessage), 0) < 0) {
